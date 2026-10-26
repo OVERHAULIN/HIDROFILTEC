@@ -3,337 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIDROFILTEC S.A.C. - RRHH</title>
+    <title>HIDROFILTEC S.A.C. - Sistema de Gestión</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; }
-        .login-bg { background: linear-gradient(135deg, #e0f2fe 0%, #7dd3fc 100%); }
         .sidebar-bg { background-color: #0a192f; }
-        .nav-item.active { background-color: #1d4ed8; color: white; border-radius: 0.5rem; }
-        .nav-item:hover:not(.active) { background-color: rgba(255, 255, 255, 0.1); border-radius: 0.5rem; }
         
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
-        
-        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
-
-        /* Estilos específicos para impresión de la boleta */
         @media print {
             body * { visibility: hidden; }
-            #modal-boleta, #modal-boleta * { visibility: visible; }
-            #modal-boleta { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; background: white; padding: 0;}
+            #printBoletaSection, #printBoletaSection * { visibility: visible; }
+            #printBoletaSection { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                background: white; 
+                padding: 20px;
+                box-shadow: none;
+            }
             .no-print { display: none !important; }
-            .modal-overlay { background: white; backdrop-filter: none; }
+        }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="h-screen w-full overflow-hidden text-slate-800">
+<body class="text-gray-800 antialiased overflow-hidden h-screen w-screen flex flex-col">
 
-    <!-- CONTENEDOR DE NOTIFICACIONES -->
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- ==========================================
-         MODALES GLOBALES
-    =========================================== -->
-    
-    <!-- Modal Formularios Dinámicos -->
-    <div id="modal-form" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
-            <button onclick="closeModal('modal-form')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 no-print"><i class="fa-solid fa-xmark"></i></button>
-            <h3 id="modal-form-title" class="text-xl font-bold mb-4">Formulario</h3>
-            <div id="modal-form-content"></div>
-        </div>
-    </div>
-
-    <!-- Modal Boleta de Pago (Para Imprimir) -->
-    <div id="modal-boleta" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative border">
-            <div class="no-print absolute top-4 right-4 flex gap-2">
-                <button onclick="window.print()" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"><i class="fa-solid fa-print"></i> Imprimir</button>
-                <button onclick="closeModal('modal-boleta')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded hover:bg-slate-300"><i class="fa-solid fa-xmark"></i></button>
+    <!-- LOGIN PANTALLA -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-900 to-gray-900 backdrop-blur-md">
+        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md fade-in">
+            <div class="text-center mb-8">
+                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-tint text-blue-600 text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">HIDROFILTEC S.A.C.</h1>
+                <p class="text-gray-500 text-sm mt-1">Portal de Gestión Integral</p>
             </div>
             
-            <div class="border-b-2 border-slate-800 pb-4 mb-4 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-droplet text-blue-600 text-3xl"></i>
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800 tracking-tight">HIDROFILTEC S.A.C.</h2>
-                        <p class="text-xs text-slate-500">RUC: 20123456789</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <h3 class="text-lg font-bold uppercase text-slate-700">Boleta de Pago</h3>
-                    <p class="text-sm font-medium" id="boleta-periodo">Período: Octubre 2026</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-                <div><span class="font-bold">Trabajador:</span> <span id="boleta-nombre"></span></div>
-                <div><span class="font-bold">Cargo:</span> <span id="boleta-cargo"></span></div>
-                <div><span class="font-bold">DNI:</span> <span id="boleta-dni"></span></div>
-                <div><span class="font-bold">Régimen:</span> <span id="boleta-regimen"></span></div>
-            </div>
-
-            <table class="w-full text-sm mb-6 border-collapse">
-                <thead>
-                    <tr class="bg-slate-100 border-b border-t border-slate-300">
-                        <th class="py-2 px-4 text-left">Concepto</th>
-                        <th class="py-2 px-4 text-right">Ingresos (S/)</th>
-                        <th class="py-2 px-4 text-right">Descuentos (S/)</th>
-                    </tr>
-                </thead>
-                <tbody id="boleta-detalle">
-                    <!-- Dinámico -->
-                </tbody>
-                <tfoot>
-                    <tr class="border-t-2 border-slate-800 font-bold bg-slate-50">
-                        <td class="py-3 px-4 text-right">NETO A PAGAR:</td>
-                        <td colspan="2" class="py-3 px-4 text-right text-lg text-blue-700" id="boleta-neto">S/ 0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-            <div class="mt-12 pt-8 flex justify-between text-sm text-center">
-                <div class="w-48 border-t border-slate-400 pt-2">Firma del Empleador</div>
-                <div class="w-48 border-t border-slate-400 pt-2">Firma del Trabajador</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==========================================
-         PANTALLA DE LOGIN
-    =========================================== -->
-    <div id="login-view" class="h-full w-full flex items-center justify-center login-bg absolute inset-0 z-40">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-            <div class="text-center mb-8">
-                <i class="fa-solid fa-droplet text-blue-500 text-4xl mb-2"></i>
-                <h1 class="text-2xl font-bold text-slate-800">HIDROFILTEC S.A.C.</h1>
-                <p class="text-sm text-slate-500">Sistema Integrado</p>
-            </div>
-            <form id="login-form" class="space-y-4">
+            <form id="loginForm" class="space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
-                    <input type="text" id="username" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Rol de Acceso</label>
+                    <select id="loginRole" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        <option value="admin">Administrador (Gerente)</option>
+                        <option value="secretaria">Secretaria</option>
+                        <option value="empleado">Empleado (Operario/Técnico)</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-                    <input type="password" id="password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Usuario</label>
+                    <input type="text" id="loginUser" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Ingrese usuario">
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-lg mt-4">
-                    Ingresar
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Contraseña</label>
+                    <input type="password" id="loginPass" required class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••">
+                </div>
+                <div id="loginError" class="text-red-500 text-sm hidden font-medium text-center bg-red-50 p-2 rounded">Credenciales incorrectas.</div>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition font-bold shadow-lg shadow-blue-500/30">
+                    Ingresar al sistema
                 </button>
             </form>
-            <div class="mt-4 text-xs text-slate-400 text-center">
-                Cuentas válidas: admin | secretaria | empleado
-            </div>
         </div>
     </div>
 
-    <!-- ==========================================
-         INTERFAZ PRINCIPAL DE LA APP
-    =========================================== -->
-    <div id="app-view" class="h-full w-full hidden flex">
+    <!-- CONTENEDOR PRINCIPAL APP -->
+    <div id="appWrapper" class="hidden flex h-full w-full">
         
-        <!-- SIDEBAR DINÁMICO -->
-        <aside class="w-64 sidebar-bg text-white flex flex-col h-full shadow-xl z-20 shrink-0">
-            <div class="p-6 flex items-center gap-3 border-b border-white/10">
-                <i class="fa-solid fa-droplet text-blue-400 text-2xl"></i>
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="sidebar-bg text-gray-300 w-64 flex-shrink-0 hidden md:flex flex-col transition-all duration-300 z-40">
+            <div class="p-6 flex items-center gap-3 border-b border-gray-700">
+                <i class="fas fa-tint text-blue-400 text-2xl"></i>
                 <div>
-                    <h2 class="font-bold text-sm">HIDROFILTEC S.A.C.</h2>
-                    <p class="text-[10px] text-slate-400" id="sidebar-role-text">Rol</p>
+                    <h2 class="text-white font-bold tracking-wider text-sm">HIDROFILTEC</h2>
+                    <p class="text-xs text-gray-400" id="sidebarRoleLabel">Rol</p>
                 </div>
+                <button id="closeSidebarMobile" class="md:hidden ml-auto text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-                <!-- Se llena con JS según el rol -->
+            <nav class="flex-1 overflow-y-auto py-4 space-y-1" id="navMenu">
+                <!-- Inyectado dinámicamente -->
             </nav>
-            <div class="p-4 border-t border-white/10">
-                <div class="flex items-center gap-3 mb-4 px-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold" id="user-initial">U</div>
-                    <div class="text-sm font-medium truncate" id="user-fullname">Usuario</div>
-                </div>
-                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 rounded-lg text-sm hover:bg-slate-700 transition-colors">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Salir
+            <div class="p-4 border-t border-gray-700">
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-red-600 text-white py-3 rounded-xl transition text-sm font-semibold">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
                 </button>
             </div>
         </aside>
 
-        <!-- ÁREA PRINCIPAL -->
-        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 relative">
-            
-            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-8 z-10 shrink-0">
-                <h2 id="header-title" class="text-xl font-bold text-slate-800">Panel</h2>
+        <!-- MAIN AREA -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 relative w-full">
+            <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 w-full">
                 <div class="flex items-center gap-4">
-                    <span id="header-date" class="text-sm font-medium text-slate-500"></span>
-                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800" id="header-role-badge">Admin</span>
+                    <button id="mobileMenuBtn" class="md:hidden text-gray-600 hover:text-blue-600 text-xl transition">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 id="pageTitle" class="text-xl font-bold text-gray-800">Cargando...</h2>
+                </div>
+                <div class="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span id="headerUserName" class="text-sm font-semibold text-gray-700 capitalize">Usuario</span>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-auto p-6" id="main-content-area">
+            <!-- VISTAS -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-8" id="mainViews">
                 
-                <!-- VISTA: MI PERFIL (EMPLEADO) -->
-                <div id="view-perfil" class="module-content hidden max-w-4xl mx-auto space-y-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold mb-2">Bienvenido, <span id="perfil-nombre">Empleado</span></h3>
-                        <p class="text-slate-500 mb-6">Desde aquí puedes gestionar tu jornada laboral y visualizar tu nómina.</p>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="border rounded-lg p-5 bg-slate-50">
-                                <h4 class="font-bold text-slate-700 mb-3"><i class="fa-solid fa-clock mr-2"></i> Asistencia Diaria</h4>
-                                <p class="text-xs text-slate-500 mb-4">La marcación requiere acceso a tu ubicación GPS.</p>
-                                <div class="flex gap-2">
-                                    <button onclick="marcarAsistencia('Ingreso')" class="flex-1 bg-emerald-600 text-white py-2 rounded shadow hover:bg-emerald-700 text-sm font-medium"><i class="fa-solid fa-arrow-right-to-bracket"></i> Marcar Ingreso</button>
-                                    <button onclick="marcarAsistencia('Salida')" class="flex-1 bg-slate-700 text-white py-2 rounded shadow hover:bg-slate-800 text-sm font-medium"><i class="fa-solid fa-person-walking-arrow-right"></i> Marcar Salida</button>
-                                </div>
+                <!-- VIEW: DASHBOARD -->
+                <div id="view-dashboard" class="view-section hidden fade-in">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Personal Activo</p>
+                                <h3 class="text-3xl font-bold text-gray-800 mt-1" id="stat-trabajadores">0</h3>
                             </div>
-                            
-                            <div class="border rounded-lg p-5 bg-slate-50">
-                                <h4 class="font-bold text-slate-700 mb-3"><i class="fa-solid fa-business-time mr-2"></i> Horas Extra</h4>
-                                <p class="text-xs text-slate-500 mb-4">Solicita aprobación para horas adicionales laboradas (Requiere GPS).</p>
-                                <button onclick="solicitarHorasExtraEmpleado()" class="w-full bg-amber-500 text-white py-2 rounded shadow hover:bg-amber-600 text-sm font-medium"><i class="fa-solid fa-plus"></i> Solicitar Horas Extra</button>
+                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-users"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Asistencia Hoy</p>
+                                <h3 class="text-3xl font-bold text-green-600 mt-1" id="stat-presentes">0</h3>
                             </div>
+                            <div class="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-user-check"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Dispensadores</p>
+                                <h3 class="text-3xl font-bold text-indigo-600 mt-1" id="stat-dispensadores">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-box"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Producción (L)</p>
+                                <h3 class="text-3xl font-bold text-teal-600 mt-1" id="stat-produccion">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center text-xl"><i class="fas fa-water"></i></div>
                         </div>
                     </div>
                     
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h4 class="font-bold text-slate-700 mb-4"><i class="fa-solid fa-file-invoice-dollar mr-2"></i> Mi Nómina (Mes Actual)</h4>
-                        <div id="perfil-nomina-estado" class="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
-                            <!-- Dinámico -->
+                    <div class="bg-red-50 border border-red-100 p-5 rounded-2xl shadow-sm">
+                        <h3 class="text-red-800 font-bold mb-3 flex items-center gap-2"><i class="fas fa-bell text-red-500"></i> Alertas Operativas</h3>
+                        <ul class="text-sm text-red-700 space-y-2" id="alertasList"></ul>
+                    </div>
+                </div>
+
+                <!-- VIEW: MI PERFIL (EMPLEADO) -->
+                <div id="view-mi-perfil" class="view-section hidden fade-in">
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl p-8 shadow-lg mb-8 relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h2 class="text-3xl font-bold mb-1">¡Hola, <span id="empNameTitle">Empleado</span>!</h2>
+                            <p class="text-blue-100 font-medium">Panel de Autogestión del Trabajador</p>
+                        </div>
+                        <i class="fas fa-user-circle absolute -right-10 -bottom-10 text-9xl opacity-20"></i>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 class="font-bold text-lg mb-2 text-gray-800 flex items-center gap-2"><i class="fas fa-clock text-blue-500"></i> Control de Asistencia</h3>
+                            <p class="text-xs text-gray-500 mb-6 bg-gray-50 p-2 rounded border border-gray-200">
+                                <b>Importante:</b> Solo se permite marcar un ingreso y una salida por día. Se requiere acceso al GPS.
+                            </p>
+                            
+                            <div class="flex gap-4">
+                                <button id="btnIngresoEmp" onclick="registrarAsistenciaEmp('ingreso')" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition shadow-md flex justify-center items-center gap-2">
+                                    <i class="fas fa-sign-in-alt"></i> Marcar Ingreso
+                                </button>
+                                <button id="btnSalidaEmp" onclick="registrarAsistenciaEmp('salida')" class="flex-1 bg-gray-500 text-white font-bold py-3 rounded-xl transition shadow-md flex justify-center items-center gap-2 opacity-50 cursor-not-allowed" disabled>
+                                    <i class="fas fa-sign-out-alt"></i> Marcar Salida
+                                </button>
+                            </div>
+                            <div id="empLocationInfo" class="mt-4 text-sm text-center font-medium text-gray-600 bg-gray-50 py-2 rounded-lg hidden"></div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 class="font-bold text-lg mb-2 text-gray-800 flex items-center gap-2"><i class="fas fa-business-time text-orange-500"></i> Solicitud de Horas Extra</h3>
+                            <p class="text-xs text-gray-500 mb-4 bg-gray-50 p-2 rounded border border-gray-200">
+                                Límite: 1 solicitud diaria. Se registrará la ubicación actual.
+                            </p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-600 block mb-1">Cantidad de Horas</label>
+                                    <input type="number" id="empHeHoras" placeholder="Ej: 2" class="w-full p-2.5 border rounded-lg outline-none focus:border-orange-500" min="1" max="8">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-600 block mb-1">Motivo Justificado</label>
+                                    <input type="text" id="empHeMotivo" placeholder="Ej: Limpieza profunda de filtros" class="w-full p-2.5 border rounded-lg outline-none focus:border-orange-500">
+                                </div>
+                                <button id="btnSolicitarHE" onclick="solicitarHorasExtraEmp()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-md flex justify-center items-center gap-2">
+                                    <i class="fas fa-paper-plane"></i> Enviar Solicitud
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-2">
+                            <h3 class="font-bold text-lg mb-4 text-gray-800 flex items-center gap-2"><i class="fas fa-file-invoice-dollar text-green-500"></i> Mis Boletas de Pago</h3>
+                            <div class="overflow-x-auto rounded-lg border border-gray-200">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
+                                        <tr>
+                                            <th class="p-4">Periodo</th>
+                                            <th class="p-4">Estado Aprobación</th>
+                                            <th class="p-4">Documento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="empNominasTable" class="divide-y divide-gray-100"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- VISTA: DASHBOARD (ADMIN/SECRETARIA) -->
-                <div id="view-dashboard" class="module-content hidden space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500">
-                            <p class="text-sm text-slate-500">Total Empleados</p>
-                            <h4 class="text-3xl font-bold text-slate-800" id="dash-emp">0</h4>
+                <!-- VIEW: TRABAJADORES -->
+                <div id="view-trabajadores" class="view-section hidden fade-in">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                        <div class="relative w-full sm:w-72">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" placeholder="Buscar DNI o nombre..." class="w-full pl-10 p-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:border-blue-500 transition">
                         </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500">
-                            <p class="text-sm text-slate-500">Asistencia Hoy</p>
-                            <h4 class="text-3xl font-bold text-slate-800" id="dash-asist">0</h4>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-amber-500">
-                            <p class="text-sm text-slate-500">Horas Extra Pendientes</p>
-                            <h4 class="text-3xl font-bold text-slate-800" id="dash-horas">0</h4>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-purple-500">
-                            <p class="text-sm text-slate-500">Producción Mes (L)</p>
-                            <h4 class="text-3xl font-bold text-slate-800" id="dash-prod">0</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- VISTA: TRABAJADORES -->
-                <div id="view-trabajadores" class="module-content hidden space-y-4">
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold">Directorio de Personal</h3>
-                        <button onclick="formNuevoEmpleado()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 font-medium">
-                            <i class="fa-solid fa-user-plus"></i> Nuevo Empleado
+                        <button onclick="abrirModalTrabajador()" class="w-full sm:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-user-plus"></i> Registrar Personal
                         </button>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 border-b text-xs uppercase text-slate-500">
-                                <tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Sueldo Base</th><th>Régimen</th><th class="text-center">Acciones</th></tr>
-                            </thead>
-                            <tbody id="tbl-trabajadores" class="text-sm divide-y"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- VISTA: ASISTENCIA -->
-                <div id="view-asistencia" class="module-content hidden space-y-4">
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold">Registro de Asistencia</h3>
-                        <div class="flex gap-2">
-                            <select id="filtro-asistencia" onchange="renderAsistencia()" class="border px-3 py-1.5 rounded-lg text-sm outline-none">
-                                <option value="hoy">Hoy</option>
-                                <option value="semana">Esta Semana</option>
-                                <option value="mes">Este Mes</option>
-                                <option value="todo">Histórico Completo</option>
-                            </select>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4">ID / DNI</th>
+                                        <th class="p-4">Nombre Completo</th>
+                                        <th class="p-4">Cargo</th>
+                                        <th class="p-4">Régimen</th>
+                                        <th class="p-4">Sueldo Base</th>
+                                        <th class="p-4 text-center admin-only">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="tablaTrabajadores"></tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 border-b text-xs uppercase text-slate-500">
-                                <tr><th>Fecha/Hora</th><th>Empleado</th><th>Tipo</th><th>Ubicación (GPS)</th></tr>
-                            </thead>
-                            <tbody id="tbl-asistencia" class="text-sm divide-y"></tbody>
-                        </table>
+                </div>
+
+                <!-- VIEW: ASISTENCIA GLOBAL -->
+                <div id="view-asistencia" class="view-section hidden fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-700">Registro Histórico (Hoy)</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4">Fecha</th>
+                                        <th class="p-4">Trabajador</th>
+                                        <th class="p-4">Hora Ingreso</th>
+                                        <th class="p-4">Hora Salida</th>
+                                        <th class="p-4">Ubicación GPS (Última)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="tablaAsistencia"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- VISTA: HORAS EXTRA -->
-                <div id="view-horasextra" class="module-content hidden space-y-4">
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold">Control de Horas Extra</h3>
-                        <button onclick="formHorasExtraAdmin()" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-amber-600 font-medium">
-                            <i class="fa-solid fa-plus"></i> Registrar (Secretaria)
-                        </button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 border-b text-xs uppercase text-slate-500">
-                                <tr><th>Fecha</th><th>Empleado</th><th>Horas</th><th>Motivo</th><th>Ubicación</th><th>Estado</th><th class="text-center">Aprobación</th></tr>
-                            </thead>
-                            <tbody id="tbl-horasextra" class="text-sm divide-y"></tbody>
-                        </table>
+                <!-- VIEW: HORAS EXTRA GLOBAL -->
+                <div id="view-horas-extra" class="view-section hidden fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4">Fecha</th>
+                                        <th class="p-4">Trabajador</th>
+                                        <th class="p-4">Horas</th>
+                                        <th class="p-4">Motivo / GPS</th>
+                                        <th class="p-4">Estado</th>
+                                        <th class="p-4 text-center admin-only">Gestión</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="tablaHorasExtra"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- VISTA: NÓMINA -->
-                <div id="view-nomina" class="module-content hidden space-y-4">
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <!-- VIEW: NÓMINA GLOBAL -->
+                <div id="view-nomina" class="view-section hidden fade-in">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
                         <div>
-                            <h3 class="text-lg font-bold">Planilla - Mes Actual</h3>
-                            <p class="text-xs text-slate-500">Estado Global: <span id="estado-global-nomina" class="font-bold">Pendiente</span></p>
+                            <h3 class="font-bold text-blue-900">Periodo Actual de Cálculo</h3>
+                            <p class="text-sm text-blue-700">Octubre 2026</p>
                         </div>
-                        <div class="flex gap-2" id="botones-nomina">
-                            <!-- JS inyecta Generar(Sec) o Aprobar(Admin) -->
-                        </div>
+                        <button onclick="procesarPlanillaGlobal()" class="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition flex items-center gap-2">
+                            <i class="fas fa-calculator"></i> Generar Nómina Mensual
+                        </button>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden overflow-x-auto">
-                        <table class="w-full text-left whitespace-nowrap">
-                            <thead class="bg-slate-100 border-b text-xs uppercase text-slate-500">
-                                <tr><th>Trabajador</th><th>Base (S/)</th><th>H. Extra Aprob (S/)</th><th>Descuento Pensión</th><th>Neto (S/)</th><th>Estado Indiv.</th></tr>
-                            </thead>
-                            <tbody id="tbl-nomina" class="text-sm divide-y"></tbody>
-                        </table>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4">Trabajador</th>
+                                        <th class="p-4">Sueldo Base</th>
+                                        <th class="p-4">H.E. Aprobadas</th>
+                                        <th class="p-4">Dcto. (Ley)</th>
+                                        <th class="p-4">Neto a Pagar</th>
+                                        <th class="p-4">Estado</th>
+                                        <th class="p-4 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="tablaNomina"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- VISTA: DISPENSADORES -->
-                <div id="view-dispensadores" class="module-content hidden space-y-4">
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold">Inventario de Dispensadores</h3>
-                        <button onclick="formDispensador()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 font-medium"><i class="fa-solid fa-plus"></i> Nuevo Equipo</button>
+                <!-- VIEW: DISPENSADORES -->
+                <div id="view-dispensadores" class="view-section hidden fade-in">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="text-xs text-gray-500 font-bold block mb-1">Código Único Dispensador</label>
+                            <input type="text" id="dispCodigo" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500" placeholder="Ej. DISP-101">
+                        </div>
+                        <div class="flex-1 w-full">
+                            <label class="text-xs text-gray-500 font-bold block mb-1">Ubicación / Cliente</label>
+                            <input type="text" id="dispUbicacion" class="w-full p-2.5 border rounded-lg outline-none focus:border-blue-500" placeholder="Sucursal Norte">
+                        </div>
+                        <button type="button" onclick="agregarDispensador()" class="w-full md:w-auto bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-indigo-700 shadow-md">Registrar</button>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 border-b text-xs uppercase text-slate-500">
-                                <tr><th>Código</th><th>Ubicación</th><th>Últ. Mantenimiento</th><th>Estado</th><th class="text-center">Acciones</th></tr>
-                            </thead>
-                            <tbody id="tbl-dispensadores" class="text-sm divide-y"></tbody>
-                        </table>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4">Código Disp.</th>
+                                        <th class="p-4">Ubicación Asignada</th>
+                                        <th class="p-4">Estado</th>
+                                        <th class="p-4 text-center admin-only">Eliminar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="tablaDispensadores"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-
-                <!-- VISTA: PRODUCCIÓN -->
-                <div id="view-produccion" class="module-content hidden space-y-4">
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold">Producción de Agua</h3>
-                        <button onclick="formProduccion()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 font-medium"><i class="fa-solid fa-plus"></i> Registrar Lote</button>
+                
+                <!-- VIEW: PRODUCCIÓN -->
+                <div id="view-produccion" class="view-section hidden fade-in">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="text-xs text-gray-500 font-bold block mb-1">Litros Producidos (Lote)</label>
+                            <input type="number" id="prodLitros" class="w-full p-2.5 border rounded-lg outline-none focus:border-teal-500" placeholder="Ej. 1000">
+                        </div>
+                        <button type="button" onclick="agregarProduccion()" class="w-full sm:w-auto bg-teal-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-teal-700 shadow-md flex items-center justify-center gap-2">
+                            <i class="fas fa-plus-circle"></i> Registrar Lote
+                        </button>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-100 border-b text-xs uppercase text-slate-500">
-                                <tr><th>Fecha</th><th>Litros</th><th>Operador</th><th class="text-center">Acciones</th></tr>
-                            </thead>
-                            <tbody id="tbl-produccion" class="text-sm divide-y"></tbody>
-                        </table>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left whitespace-nowrap">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <tr>
+                                        <th class="p-4">Fecha y Hora</th>
+                                        <th class="p-4">Volumen (Litros)</th>
+                                        <th class="p-4">Registrado por</th>
+                                        <th class="p-4 text-center admin-only">Eliminar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100" id="tablaProduccion"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -341,463 +387,140 @@
         </main>
     </div>
 
-    <!-- ==========================================
-         LÓGICA DEL SISTEMA (JS)
-    =========================================== -->
-    <script>
-        // --- 1. ESTADO GLOBAL (MOCK DB) ---
-        const DB = {
-            empleados: [
-                { id: 1, nombre: 'Juan Pérez (Admin)', dni: '11111111', cargo: 'Gerente', sueldo: 4000, regimen: 'AFP (11%)', r_val: 0.11 },
-                { id: 2, nombre: 'Ana Gómez (Secretaria)', dni: '22222222', cargo: 'Secretaria', sueldo: 2000, regimen: 'ONP (13%)', r_val: 0.13 },
-                { id: 3, nombre: 'Carlos Ruiz (Empleado)', dni: '33333333', cargo: 'Operario', sueldo: 1500, regimen: 'AFP (11%)', r_val: 0.11 }
-            ],
-            asistencia: [],
-            horasExtra: [
-                { id: 1, empId: 3, fecha: new Date().toISOString().split('T')[0], horas: 2, motivo: 'Mantenimiento urgente', ubicacion: 'Planta Principal', estado: 'Pendiente' }
-            ],
-            dispensadores: [
-                { id: 'DISP-001', ubicacion: 'Plaza Central', mtto: '2026-10-01', estado: 'Activo' }
-            ],
-            produccion: [],
-            nominaGlobal: { estado: 'Pendiente' } // Pendiente, Generada, Aprobada
-        };
-        
-        let currentUser = null; 
-        // roles: 'admin', 'secretaria', 'empleado'
+    <!-- MODAL NUEVO TRABAJADOR -->
+    <div id="modalTrabajador" class="fixed inset-0 bg-gray-900/60 hidden z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-3 border-gray-100">Nuevo Colaborador</h3>
+            <form id="formTrabajador" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-600 block mb-1">DNI / ID (Único)</label>
+                    <input type="text" id="tDNI" required class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500" placeholder="Obligatorio">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-600 block mb-1">Nombre Completo</label>
+                    <input type="text" id="tNombre" required class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500">
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="text-xs font-bold text-gray-600 block mb-1">Usuario</label>
+                        <input type="text" id="tUsuario" required class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs font-bold text-gray-600 block mb-1">Contraseña</label>
+                        <input type="password" id="tPassword" required class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="text-xs font-bold text-gray-600 block mb-1">Cargo / Nivel</label>
+                        <select id="tCargo" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500">
+                            <option value="Operario">Operario (Empleado)</option>
+                            <option value="Tecnico">Técnico (Empleado)</option>
+                            <option value="Secretaria">Secretaria</option>
+                            <option value="Gerente">Gerente (Admin)</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs font-bold text-gray-600 block mb-1">Régimen</label>
+                        <select id="tRegimen" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500">
+                            <option value="ONP">ONP (13%)</option>
+                            <option value="AFP Integra">AFP Integra (12%)</option>
+                            <option value="AFP Prima">AFP Prima (12.2%)</option>
+                            <option value="AFP Profuturo">AFP Profuturo (12.3%)</option>
+                            <option value="AFP Habitat">AFP Habitat (12.1%)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-4 items-center">
+                    <div class="flex-1">
+                        <label class="text-xs font-bold text-gray-600 block mb-1">Sueldo Base Mensual (S/)</label>
+                        <input type="number" id="tSueldo" required class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value="1025" min="1025">
+                    </div>
+                    <div class="flex-1 flex items-center gap-2 mt-5">
+                        <input type="checkbox" id="tAsigFamiliar" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+                        <label for="tAsigFamiliar" class="text-sm font-bold text-gray-700">Asignación Familiar (+ S/ 102.50)</label>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="cerrarModalTrabajador()" class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        // --- 2. UTILIDADES ---
-        function showToast(msg, type='info') {
-            const container = document.getElementById('toast-container');
-            const colors = { success: 'bg-emerald-500', error: 'bg-red-500', info: 'bg-blue-500', warning: 'bg-amber-500' };
-            const html = `<div class="toast-enter ${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 font-medium text-sm z-50"><i class="fa-solid fa-circle-info"></i>${msg}</div>`;
-            container.insertAdjacentHTML('beforeend', html);
-            const t = container.lastElementChild;
-            setTimeout(() => { t.style.opacity = 0; setTimeout(()=>t.remove(), 300); }, 4000);
-        }
-
-        function openModalForm(title, contentHTML) {
-            document.getElementById('modal-form-title').innerText = title;
-            document.getElementById('modal-form-content').innerHTML = contentHTML;
-            document.getElementById('modal-form').classList.remove('hidden');
-        }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        // --- 3. GEOLOCALIZACIÓN ---
-        async function obtenerUbicacion() {
-            return new Promise((resolve) => {
-                if (!navigator.geolocation) {
-                    showToast("GPS no soportado en tu navegador.", "error");
-                    return resolve("No disponible");
-                }
-                showToast("Obteniendo coordenadas GPS...", "info");
-                navigator.geolocation.getCurrentPosition(async (pos) => {
-                    const lat = pos.coords.latitude, lon = pos.coords.longitude;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-                        const data = await res.json();
-                        resolve(data.display_name ? data.display_name.split(',').slice(0,3).join(',') : `${lat}, ${lon}`);
-                    } catch (e) { resolve(`Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`); }
-                }, () => {
-                    showToast("Permiso GPS denegado.", "error");
-                    resolve("GPS Denegado");
-                }, { enableHighAccuracy: true, timeout: 10000 });
-            });
-        }
-
-        // --- 4. AUTENTICACIÓN Y NAVEGACIÓN ---
-        document.getElementById('login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
+    <!-- MODAL BOLETA DE PAGO -->
+    <div id="modalBoleta" class="fixed inset-0 bg-gray-900/80 hidden z-[100] flex items-center justify-center overflow-y-auto py-10 p-4">
+        <div id="printBoletaSection" class="bg-white p-8 max-w-2xl w-full rounded-xl shadow-2xl relative mx-auto fade-in">
+            <button onclick="cerrarBoleta()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-500 no-print transition"><i class="fas fa-times"></i></button>
             
-            if (u==='admin' && p==='admin123') currentUser = { role: 'admin', nombre: 'Admin Sistema', empId: 1 };
-            else if (u==='secretaria' && p==='secretaria123') currentUser = { role: 'secretaria', nombre: 'Secretaria RRHH', empId: 2 };
-            else if (u==='empleado' && p==='empleado123') currentUser = { role: 'empleado', nombre: 'Carlos Ruiz', empId: 3 };
-            else { showToast('Credenciales incorrectas', 'error'); return; }
-
-            iniciarApp();
-        });
-
-        function logout() { location.reload(); }
-
-        function iniciarApp() {
-            document.getElementById('login-view').classList.add('hidden');
-            document.getElementById('app-view').classList.remove('hidden');
+            <div class="text-center mb-6 border-b-2 border-gray-800 pb-4">
+                <div class="flex justify-center items-center gap-2 mb-2">
+                    <i class="fas fa-tint text-blue-600 text-2xl"></i>
+                    <h2 class="font-bold text-2xl uppercase tracking-widest text-gray-900">HIDROFILTEC S.A.C.</h2>
+                </div>
+                <p class="text-sm text-gray-600 font-medium">RUC: 20546789123 | Dir: Av. Industrial 456, Lima</p>
+                <div class="mt-4 bg-gray-100 py-2 border border-gray-300">
+                    <h3 class="font-bold text-gray-800 uppercase tracking-wide">Boleta de Remuneraciones</h3>
+                    <p class="text-sm font-medium text-gray-700" id="boletaPeriodo">Periodo: Octubre 2026</p>
+                </div>
+            </div>
             
-            // Header Info
-            document.getElementById('user-fullname').innerText = currentUser.nombre;
-            document.getElementById('user-initial').innerText = currentUser.nombre.charAt(0);
-            document.getElementById('sidebar-role-text').innerText = currentUser.role.toUpperCase();
-            document.getElementById('header-role-badge').innerText = currentUser.role.toUpperCase();
-            document.getElementById('header-date').innerText = new Date().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-
-            // Construir Sidebar
-            const nav = document.getElementById('sidebar-nav');
-            nav.innerHTML = '';
-            const links = [];
+            <div class="mb-6 grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 border border-gray-200 rounded">
+                <p><span class="font-bold text-gray-700">Apellidos y Nombres:</span> <br><span id="boletaNombre" class="uppercase text-gray-900 text-base"></span></p>
+                <p><span class="font-bold text-gray-700">DNI / Código:</span> <br><span id="boletaDNI" class="text-gray-900"></span></p>
+                <p><span class="font-bold text-gray-700">Cargo:</span> <br><span id="boletaCargo" class="text-gray-900 uppercase"></span></p>
+                <p><span class="font-bold text-gray-700">Régimen Pensionario:</span> <br><span id="boletaRegimen" class="text-gray-900"></span></p>
+            </div>
             
-            if (currentUser.role === 'admin' || currentUser.role === 'secretaria') {
-                if(currentUser.role === 'admin') links.push({id: 'dashboard', icon: 'fa-chart-pie', text: 'Dashboard'});
-                links.push(
-                    {id: 'trabajadores', icon: 'fa-users', text: 'Trabajadores'},
-                    {id: 'asistencia', icon: 'fa-clock-rotate-left', text: 'Asistencia Global'},
-                    {id: 'horasextra', icon: 'fa-business-time', text: 'Horas Extra'},
-                    {id: 'nomina', icon: 'fa-file-invoice-dollar', text: 'Nómina Global'}
-                );
-            }
-            if (currentUser.role === 'empleado') {
-                links.push({id: 'perfil', icon: 'fa-user-circle', text: 'Mi Perfil'});
-                document.getElementById('perfil-nombre').innerText = currentUser.nombre;
-            }
-            // Todos pueden ver esto
-            links.push(
-                {id: 'dispensadores', icon: 'fa-faucet-drip', text: 'Dispensadores'},
-                {id: 'produccion', icon: 'fa-water', text: 'Producción'}
-            );
-
-            links.forEach(l => {
-                nav.innerHTML += `<button onclick="cambiarVista('${l.id}', '${l.text}')" id="nav-${l.id}" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm text-left"><i class="fa-solid ${l.icon} w-5 text-center"></i> ${l.text}</button>`;
-            });
-
-            // Iniciar en la primera vista disponible
-            cambiarVista(links[0].id, links[0].text);
-            actualizarDatos();
-        }
-
-        function cambiarVista(id, titulo) {
-            document.querySelectorAll('.module-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`view-${id}`).classList.remove('hidden');
-            const navBtn = document.getElementById(`nav-${id}`);
-            if(navBtn) navBtn.classList.add('active');
-            document.getElementById('header-title').innerText = titulo;
-        }
-
-        function actualizarDatos() {
-            if(currentUser.role !== 'empleado') {
-                renderTrabajadores();
-                renderAsistencia();
-                renderHorasExtra();
-                renderNomina();
-                
-                // Kpis dashboard admin
-                document.getElementById('dash-emp').innerText = DB.empleados.length;
-                document.getElementById('dash-asist').innerText = DB.asistencia.filter(a => new Date(a.timestamp).toDateString() === new Date().toDateString()).length;
-                document.getElementById('dash-horas').innerText = DB.horasExtra.filter(h => h.estado === 'Pendiente').length;
-                document.getElementById('dash-prod').innerText = DB.produccion.reduce((acc, p) => acc + parseFloat(p.litros), 0);
-            } else {
-                renderPerfilEmpleado();
-            }
-            renderDispensadores();
-            renderProduccion();
-        }
-
-        // --- 5. RENDERIZADO Y LÓGICA DE MÓDULOS ---
-
-        // = TRABAJADORES =
-        function renderTrabajadores() {
-            const tb = document.getElementById('tbl-trabajadores');
-            tb.innerHTML = '';
-            DB.empleados.forEach(e => {
-                const btnEliminar = currentUser.role === 'admin' ? `<button onclick="eliminarTrabajador(${e.id})" class="text-red-500 hover:text-red-700 ml-2" title="Eliminar"><i class="fa-solid fa-trash"></i></button>` : '';
-                tb.innerHTML += `<tr>
-                    <td class="p-3">EMP-${e.id}</td><td class="p-3 font-medium">${e.nombre}</td>
-                    <td class="p-3">${e.cargo}</td><td class="p-3">S/ ${e.sueldo.toFixed(2)}</td><td class="p-3">${e.regimen}</td>
-                    <td class="p-3 text-center">${btnEliminar || '-'}</td>
-                </tr>`;
-            });
-        }
-        function formNuevoEmpleado() {
-            const html = `
-                <form onsubmit="guardarEmpleado(event)" class="space-y-3">
-                    <input type="text" id="n-nom" placeholder="Nombre completo" required class="w-full border p-2 rounded">
-                    <input type="text" id="n-dni" placeholder="DNI" required class="w-full border p-2 rounded">
-                    <input type="text" id="n-cargo" placeholder="Cargo" required class="w-full border p-2 rounded">
-                    <input type="number" id="n-sueldo" placeholder="Sueldo Base (S/)" required class="w-full border p-2 rounded">
-                    <select id="n-regimen" class="w-full border p-2 rounded">
-                        <option value="AFP (11%)|0.11">AFP (11%)</option>
-                        <option value="ONP (13%)|0.13">ONP (13%)</option>
-                    </select>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Guardar</button>
-                </form>
-            `;
-            openModalForm('Nuevo Empleado', html);
-        }
-        function guardarEmpleado(e) {
-            e.preventDefault();
-            const regSplit = document.getElementById('n-regimen').value.split('|');
-            DB.empleados.push({
-                id: Date.now(), nombre: document.getElementById('n-nom').value,
-                dni: document.getElementById('n-dni').value, cargo: document.getElementById('n-cargo').value,
-                sueldo: parseFloat(document.getElementById('n-sueldo').value),
-                regimen: regSplit[0], r_val: parseFloat(regSplit[1])
-            });
-            closeModal('modal-form'); showToast('Empleado creado', 'success'); actualizarDatos();
-        }
-        function eliminarTrabajador(id) {
-            if(currentUser.role !== 'admin') return;
-            DB.empleados = DB.empleados.filter(e => e.id !== id);
-            actualizarDatos(); showToast('Empleado eliminado', 'success');
-        }
-
-        // = ASISTENCIA =
-        async function marcarAsistencia(tipo) {
-            const btn = event.currentTarget;
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Localizando...';
-            btn.disabled = true;
-            
-            const ubi = await obtenerUbicacion();
-            DB.asistencia.push({
-                id: Date.now(), empId: currentUser.empId, nombre: currentUser.nombre,
-                fecha: new Date().toLocaleString(), timestamp: Date.now(), tipo: tipo, ubicacion: ubi
-            });
-            
-            btn.innerHTML = originalHtml; btn.disabled = false;
-            showToast(`Asistencia (${tipo}) registrada con éxito.`, 'success');
-        }
-        
-        function renderAsistencia() {
-            const tb = document.getElementById('tbl-asistencia');
-            const filtro = document.getElementById('filtro-asistencia').value;
-            const now = Date.now();
-            let data = DB.asistencia;
-            
-            if(filtro === 'hoy') data = data.filter(a => (now - a.timestamp) < 86400000);
-            else if(filtro === 'semana') data = data.filter(a => (now - a.timestamp) < 86400000 * 7);
-            else if(filtro === 'mes') data = data.filter(a => (now - a.timestamp) < 86400000 * 30);
-            
-            tb.innerHTML = data.map(a => `
-                <tr>
-                    <td class="p-3 text-xs">${a.fecha}</td><td class="p-3">${a.nombre}</td>
-                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${a.tipo==='Ingreso'?'bg-emerald-100 text-emerald-700':'bg-slate-200 text-slate-700'}">${a.tipo}</span></td>
-                    <td class="p-3 text-xs truncate max-w-[200px]" title="${a.ubicacion}"><i class="fa-solid fa-location-dot text-blue-500"></i> ${a.ubicacion}</td>
-                </tr>
-            `).join('');
-        }
-
-        // = HORAS EXTRA =
-        async function solicitarHorasExtraEmpleado() {
-            const btn = event.currentTarget;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Obteniendo ubicación...';
-            btn.disabled = true;
-            
-            const ubi = await obtenerUbicacion();
-            btn.innerHTML = '<i class="fa-solid fa-plus"></i> Solicitar Horas Extra'; btn.disabled = false;
-            
-            const html = `
-                <form onsubmit="guardarHorasExtra(event, '${ubi}')" class="space-y-3">
-                    <input type="number" id="h-cant" placeholder="Cantidad de Horas" required min="1" max="12" class="w-full border p-2 rounded">
-                    <input type="text" id="h-motivo" placeholder="Motivo de las horas extra" required class="w-full border p-2 rounded">
-                    <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot"></i> GPS: ${ubi}</p>
-                    <button type="submit" class="w-full bg-amber-500 text-white py-2 rounded">Enviar Solicitud</button>
-                </form>
-            `;
-            openModalForm('Solicitud de Horas Extra', html);
-        }
-        
-        function formHorasExtraAdmin() {
-            const html = `
-                <form onsubmit="guardarHorasExtra(event, 'Registro por Secretaria/Admin')" class="space-y-3">
-                    <select id="h-emp" class="w-full border p-2 rounded">
-                        ${DB.empleados.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('')}
-                    </select>
-                    <input type="number" id="h-cant" placeholder="Horas" required class="w-full border p-2 rounded">
-                    <input type="text" id="h-motivo" placeholder="Motivo" required class="w-full border p-2 rounded">
-                    <button type="submit" class="w-full bg-amber-500 text-white py-2 rounded">Registrar</button>
-                </form>
-            `;
-            openModalForm('Registrar Horas', html);
-        }
-
-        function guardarHorasExtra(e, ubi) {
-            e.preventDefault();
-            const empId = document.getElementById('h-emp') ? parseInt(document.getElementById('h-emp').value) : currentUser.empId;
-            DB.horasExtra.push({
-                id: Date.now(), empId: empId,
-                fecha: new Date().toISOString().split('T')[0],
-                horas: parseInt(document.getElementById('h-cant').value),
-                motivo: document.getElementById('h-motivo').value,
-                ubicacion: ubi, estado: 'Pendiente'
-            });
-            closeModal('modal-form'); showToast('Solicitud de horas registrada', 'success'); actualizarDatos();
-        }
-
-        function renderHorasExtra() {
-            const tb = document.getElementById('tbl-horasextra');
-            tb.innerHTML = '';
-            DB.horasExtra.forEach(h => {
-                const emp = DB.empleados.find(e => e.id === h.empId);
-                let acciones = '-';
-                if(currentUser.role === 'admin' && h.estado === 'Pendiente') {
-                    acciones = `
-                        <button onclick="cambiarEstadoHoras(${h.id}, 'Aprobado')" class="bg-emerald-500 text-white px-2 py-1 rounded text-xs mx-1">Aprobar</button>
-                        <button onclick="cambiarEstadoHoras(${h.id}, 'Rechazado')" class="bg-red-500 text-white px-2 py-1 rounded text-xs mx-1">Rechazar</button>
-                    `;
-                }
-                const colorEst = h.estado==='Pendiente'?'bg-amber-100 text-amber-700':(h.estado==='Aprobado'?'bg-emerald-100 text-emerald-700':'bg-red-100 text-red-700');
-                
-                tb.innerHTML += `
+            <table class="w-full text-sm mb-8 border border-gray-300">
+                <thead class="border-b-2 border-gray-800 bg-gray-100 text-gray-800 uppercase">
                     <tr>
-                        <td class="p-3 text-xs">${h.fecha}</td><td class="p-3 font-medium">${emp?emp.nombre:'-'}</td>
-                        <td class="p-3 text-center">${h.horas}</td><td class="p-3">${h.motivo}</td>
-                        <td class="p-3 text-xs truncate max-w-[150px]" title="${h.ubicacion}">${h.ubicacion}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${colorEst}">${h.estado}</span></td>
-                        <td class="p-3 text-center">${acciones}</td>
+                        <th class="p-3 text-left border-r border-gray-300">Conceptos</th>
+                        <th class="p-3 text-right border-r border-gray-300 w-32">Ingresos (S/)</th>
+                        <th class="p-3 text-right w-32">Descuentos (S/)</th>
                     </tr>
-                `;
-            });
-        }
-        function cambiarEstadoHoras(id, estado) {
-            const h = DB.horasExtra.find(x => x.id === id);
-            if(h) h.estado = estado;
-            actualizarDatos(); showToast(`Horas ${estado.toLowerCase()}`, 'success');
-        }
-
-        // = NÓMINA Y BOLETA =
-        function calcularPagoHora(sueldoBase) { return (sueldoBase / 30) / 8; }
-        
-        function obtenerDatosNomina() {
-            return DB.empleados.map(emp => {
-                // Sumar horas extras aprobadas
-                const horasAprobadas = DB.horasExtra.filter(h => h.empId === emp.id && h.estado === 'Aprobado')
-                                                   .reduce((sum, h) => sum + h.horas, 0);
-                const pagoExtra = horasAprobadas * calcularPagoHora(emp.sueldo) * 1.5; // Sobretasa aprox 50%
-                const totalBruto = emp.sueldo + pagoExtra;
-                const dscto = totalBruto * emp.r_val;
-                const neto = totalBruto - dscto;
-                return { emp, pagoExtra, dscto, neto };
-            });
-        }
-
-        function renderNomina() {
-            const tb = document.getElementById('tbl-nomina');
-            tb.innerHTML = '';
-            const dataNomina = obtenerDatosNomina();
-            
-            document.getElementById('estado-global-nomina').innerText = DB.nominaGlobal.estado;
-            const containerBtns = document.getElementById('botones-nomina');
-            containerBtns.innerHTML = '';
-            
-            if(currentUser.role === 'secretaria' && DB.nominaGlobal.estado === 'Pendiente') {
-                containerBtns.innerHTML = `<button onclick="cambiarEstadoNomina('Generada')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm"><i class="fa-solid fa-cogs"></i> Generar Planilla</button>`;
-            } else if (currentUser.role === 'admin') {
-                if(DB.nominaGlobal.estado === 'Generada' || DB.nominaGlobal.estado === 'Pendiente') {
-                    containerBtns.innerHTML = `<button onclick="cambiarEstadoNomina('Aprobada')" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm"><i class="fa-solid fa-check-double"></i> Aprobar Planilla</button>`;
-                }
-            }
-
-            dataNomina.forEach(d => {
-                const colorEst = DB.nominaGlobal.estado==='Aprobada'?'bg-emerald-100 text-emerald-700':'bg-slate-200 text-slate-700';
-                tb.innerHTML += `
+                </thead>
+                <tbody id="boletaConceptos" class="divide-y divide-gray-200"></tbody>
+                <tfoot class="border-t-2 border-gray-800 font-bold bg-gray-100">
                     <tr>
-                        <td class="p-3 font-medium">${d.emp.nombre}</td>
-                        <td class="p-3">S/ ${d.emp.sueldo.toFixed(2)}</td>
-                        <td class="p-3 text-emerald-600 font-medium">S/ ${d.pagoExtra.toFixed(2)}</td>
-                        <td class="p-3 text-red-500">-S/ ${d.dscto.toFixed(2)}</td>
-                        <td class="p-3 font-bold text-blue-700">S/ ${d.neto.toFixed(2)}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${colorEst}">${DB.nominaGlobal.estado}</span></td>
+                        <td class="p-3 text-right border-r border-gray-300">TOTALES:</td>
+                        <td class="p-3 text-right border-r border-gray-300 text-green-700" id="boletaTotalIngresos">0.00</td>
+                        <td class="p-3 text-right text-red-600" id="boletaTotalDescuentos">0.00</td>
                     </tr>
-                `;
-            });
-        }
-
-        function cambiarEstadoNomina(est) {
-            DB.nominaGlobal.estado = est; actualizarDatos(); showToast(`Nómina ${est}`, 'success');
-        }
-
-        // = PERFIL EMPLEADO =
-        function renderPerfilEmpleado() {
-            const divEst = document.getElementById('perfil-nomina-estado');
-            if(DB.nominaGlobal.estado === 'Aprobada') {
-                divEst.className = "p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between";
-                divEst.innerHTML = `
-                    <div><h5 class="font-bold text-emerald-800">Planilla Aprobada</h5><p class="text-xs text-emerald-600">Tu pago ha sido procesado.</p></div>
-                    <button onclick="abrirBoleta()" class="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 font-medium text-sm shadow"><i class="fa-solid fa-file-pdf"></i> Ver Boleta</button>
-                `;
-            } else {
-                divEst.className = "p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between";
-                divEst.innerHTML = `
-                    <div><h5 class="font-bold text-slate-700">Planilla en Proceso</h5><p class="text-xs text-slate-500">Recursos humanos está procesando este mes.</p></div>
-                    <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded">Pendiente</span>
-                `;
-            }
-        }
-
-        function abrirBoleta() {
-            const dataNomina = obtenerDatosNomina();
-            const miData = dataNomina.find(d => d.emp.id === currentUser.empId);
-            if(!miData) return;
+                    <tr class="bg-gray-200 border-t border-gray-300">
+                        <td class="p-3 text-right uppercase tracking-wider text-gray-900">Neto a Pagar:</td>
+                        <td colspan="2" class="p-3 text-right text-xl text-gray-900" id="boletaNeto">S/ 0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
             
-            document.getElementById('boleta-nombre').innerText = miData.emp.nombre;
-            document.getElementById('boleta-cargo').innerText = miData.emp.cargo;
-            document.getElementById('boleta-dni').innerText = miData.emp.dni;
-            document.getElementById('boleta-regimen').innerText = miData.emp.regimen;
+            <div class="mt-20 flex justify-between px-10 text-sm">
+                <div class="text-center border-t border-gray-800 pt-2 w-40">
+                    <p class="font-bold text-gray-800">HIDROFILTEC S.A.C.</p>
+                    <p class="text-xs text-gray-500">Empleador</p>
+                </div>
+                <div class="text-center border-t border-gray-800 pt-2 w-40">
+                    <p class="font-bold text-gray-800" id="boletaFirmaNombre"></p>
+                    <p class="text-xs text-gray-500">Trabajador</p>
+                </div>
+            </div>
             
-            const d = new Date();
-            document.getElementById('boleta-periodo').innerText = `Período: ${d.toLocaleString('es-ES', {month:'long'})} ${d.getFullYear()}`.toUpperCase();
+            <div class="mt-10 text-center no-print border-t pt-6">
+                <button onclick="window.print()" class="bg-gray-800 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-gray-900 transition flex items-center justify-center gap-2 mx-auto">
+                    <i class="fas fa-print"></i> Imprimir Comprobante
+                </button>
+            </div>
+        </div>
+    </div>
 
-            document.getElementById('boleta-detalle').innerHTML = `
-                <tr class="border-b border-slate-200"><td class="py-2 px-4">Sueldo Básico</td><td class="py-2 px-4 text-right">${miData.emp.sueldo.toFixed(2)}</td><td class="py-2 px-4 text-right"></td></tr>
-                <tr class="border-b border-slate-200"><td class="py-2 px-4">Horas Extras</td><td class="py-2 px-4 text-right">${miData.pagoExtra.toFixed(2)}</td><td class="py-2 px-4 text-right"></td></tr>
-                <tr class="border-b border-slate-200 text-red-600"><td class="py-2 px-4">Retención Pensión (${miData.emp.regimen})</td><td class="py-2 px-4 text-right"></td><td class="py-2 px-4 text-right">${miData.dscto.toFixed(2)}</td></tr>
-            `;
-            document.getElementById('boleta-neto').innerText = `S/ ${miData.neto.toFixed(2)}`;
-            
-            document.getElementById('modal-boleta').classList.remove('hidden');
-        }
+    <!-- UI TOAST PARA MENSAJES -->
+    <div id="toast" class="fixed bottom-6 right-6 text-white px-6 py-4 rounded-xl shadow-2xl hidden z-[200] font-medium text-sm transition-all duration-300 transform translate-y-full opacity-0 flex items-center gap-3">
+        <i id="toastIcon" class="fas fa-info-circle text-lg"></i>
+        <span id="toastMsg">Mensaje</span>
+    </div>
 
-        // = DISPENSADORES Y PRODUCCIÓN =
-        function formDispensador() {
-            const html = `
-                <form onsubmit="guardarDispensador(event)" class="space-y-3">
-                    <input type="text" id="d-id" placeholder="Código (ej. DISP-002)" required class="w-full border p-2 rounded uppercase">
-                    <input type="text" id="d-ubi" placeholder="Ubicación Cliente" required class="w-full border p-2 rounded">
-                    <select id="d-est" class="w-full border p-2 rounded"><option value="Activo">Activo</option><option value="Mantenimiento">En Mantenimiento</option></select>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Guardar</button>
-                </form>
-            `; openModalForm('Nuevo Dispensador', html);
-        }
-        function guardarDispensador(e) {
-            e.preventDefault();
-            DB.dispensadores.push({ id: document.getElementById('d-id').value.toUpperCase(), ubicacion: document.getElementById('d-ubi').value, mtto: new Date().toISOString().split('T')[0], estado: document.getElementById('d-est').value });
-            closeModal('modal-form'); actualizarDatos(); showToast('Dispensador registrado', 'success');
-        }
-        function eliminarDisp(id) { if(currentUser.role==='admin'){ DB.dispensadores=DB.dispensadores.filter(d=>d.id!==id); actualizarDatos(); showToast('Eliminado','success');} }
-
-        function formProduccion() {
-            const html = `
-                <form onsubmit="guardarProduccion(event)" class="space-y-3">
-                    <input type="number" id="p-litros" placeholder="Litros purificados" required class="w-full border p-2 rounded">
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Registrar Lote</button>
-                </form>
-            `; openModalForm('Registro de Producción', html);
-        }
-        function guardarProduccion(e) {
-            e.preventDefault();
-            DB.produccion.push({ id: Date.now(), fecha: new Date().toISOString().split('T')[0], litros: document.getElementById('p-litros').value, operador: currentUser.nombre });
-            closeModal('modal-form'); actualizarDatos(); showToast('Lote registrado', 'success');
-        }
-        function eliminarProd(id) { if(currentUser.role==='admin'){ DB.produccion=DB.produccion.filter(p=>p.id!==id); actualizarDatos(); showToast('Eliminado','success');} }
-
-        function renderDispensadores() {
-            const tb = document.getElementById('tbl-dispensadores');
-            tb.innerHTML = DB.dispensadores.map(d => {
-                const btnDel = currentUser.role === 'admin' ? `<button onclick="eliminarDisp('${d.id}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>` : '-';
-                const colorEst = d.estado==='Activo'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700';
-                return `<tr><td class="p-3 font-mono font-bold">${d.id}</td><td class="p-3">${d.ubicacion}</td><td class="p-3">${d.mtto}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${colorEst}">${d.estado}</span></td><td class="p-3 text-center">${btnDel}</td></tr>`;
-            }).join('');
-        }
-
-        function renderProduccion() {
-            const tb = document.getElementById('tbl-produccion');
-            tb.innerHTML = DB.produccion.map(p => {
-                const btnDel = currentUser.role === 'admin' ? `<button onclick="eliminarProd(${p.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>` : '-';
-                return `<tr><td class="p-3">${p.fecha}</td><td class="p-3 font-bold text-blue-600">${p.litros} L</td><td class="p-3">${p.operador}</td><td class="p-3 text-center">${btnDel}</td></tr>`;
-            }).join('');
-        }
-    </script>
+    <!-- CARGA UNIFICADA DE LA API Y LÓGICA -->
+    <script src="api.js"></script>
 </body>
 </html>
